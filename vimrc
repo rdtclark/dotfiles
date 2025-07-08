@@ -1,7 +1,6 @@
 call plug#begin()
 Plug 'tpope/vim-rails'
 Plug 'tpope/vim-endwise' 
-" Plug 'ervandew/supertab'
 Plug 'tpope/vim-bundler'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-repeat'
@@ -17,9 +16,69 @@ Plug 'junegunn/fzf.vim'
 Plug 'nanotech/jellybeans.vim'
 Plug 'godlygeek/tabular'
 Plug 'mattn/emmet-vim'
-Plug 'dense-analysis/ale'
 Plug 'github/copilot.vim'
+Plug 'dense-analysis/ale'
+Plug 'vimwiki/vimwiki'
+Plug 'neovim/nvim-lspconfig'
+Plug 'hrsh7th/nvim-cmp'
+Plug 'hrsh7th/cmp-nvim-lsp'
+Plug 'hrsh7th/cmp-buffer'
+" For Typscript and React
+Plug 'hrsh7th/cmp-path'
+Plug 'hrsh7th/cmp-cmdline'
 call plug#end()
+
+" --- LSP Configuration ---
+lua << EOF
+-- LSP key mappings
+vim.api.nvim_create_autocmd('LspAttach', {
+	callback = function(ev)
+		local opts = { buffer = ev.buf }
+		-- Jump to definition
+		vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+		-- Other useful mappings
+		vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+		vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+		vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
+		vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
+	end,
+})
+
+-- Tab completion setup
+local cmp = require('cmp')
+cmp.setup({
+	mapping = {
+		['<Tab>'] = cmp.mapping.select_next_item(),
+		['<S-Tab>'] = cmp.mapping.select_prev_item(),
+		['<CR>'] = cmp.mapping.confirm({ select = true }),
+		['<C-Space>'] = cmp.mapping.complete(),
+		['<Esc>'] = cmp.mapping.close(),
+	},
+	sources = {
+		{ name = 'nvim_lsp' },
+		{ name = 'buffer' },
+		{ name = 'path' },
+	},
+})
+
+-- Enable LSP completion capabilities
+local capabilities = require('cmp_nvim_lsp').default_capabilities()
+
+-- Ruby LSP
+require'lspconfig'.ruby_lsp.setup{
+	capabilities = capabilities
+}
+
+-- TypeScript LSP
+require'lspconfig'.ts_ls.setup{
+	capabilities = capabilities,
+	filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
+	root_dir = require('lspconfig').util.root_pattern("package.json", "tsconfig.json", ".git"),
+}
+EOF
+
+" vimwiki
+let g:vimwiki_list = [{'path': '~/k/', 'syntax': 'markdown', 'ext': 'md', 'diary_rel_path': 'Notes'}]
 
 " Show current filename always
 set laststatus=2
@@ -88,12 +147,13 @@ hi Breakpoints guifg=Blue ctermfg=Blue term=bold
 " Use Silver Searcher instead of grep
 set grepprg=ag
 
-" fuzzy find files and text
+" fuzzy find files
 nnoremap <C-p> :GFiles<Cr>
 nnoremap <C-p> :Files<Cr>
+" fuzzy find within files
+nnoremap <C-q> :Ag<cr>
 " show at the bottom
 let g:fzf_layout = { 'down': '40%' }
-nnoremap <C-q> :Ag<cr>
 
 " Make the omnicomplete text readable
 highlight PmenuSel ctermfg=black
@@ -132,6 +192,18 @@ augroup myfiletypes
 	autocmd FileType ruby,eruby,yaml,yml setlocal iskeyword+=?
 	" yml fix
 	autocmd FileType yml,yaml setlocal ts=2 sts=2 sw=2 expandtab indentkeys-=0# indentkeys-=<:>
+augroup END
+
+" ========================================================================
+" TypeScript/React stuff
+" ========================================================================
+augroup typescript
+	autocmd!
+	" autoindent with two spaces, always expand tabs
+	autocmd FileType typescript,typescriptreact,javascript,javascriptreact setlocal ai sw=2 sts=2 et
+	autocmd FileType typescript,typescriptreact,javascript,javascriptreact setlocal colorcolumn=100
+	" Enable JSX syntax in .tsx and .jsx files
+	autocmd FileType typescriptreact,javascriptreact setlocal syntax=javascript.jsx
 augroup END
 
 augroup vimResized
