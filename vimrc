@@ -16,17 +16,18 @@ Plug 'junegunn/fzf.vim'
 Plug 'nanotech/jellybeans.vim'
 Plug 'godlygeek/tabular'
 Plug 'mattn/emmet-vim'
-Plug 'github/copilot.vim'
 Plug 'dense-analysis/ale'
 Plug 'vimwiki/vimwiki'
 Plug 'neovim/nvim-lspconfig'
 Plug 'hrsh7th/nvim-cmp'
 Plug 'hrsh7th/cmp-nvim-lsp'
 Plug 'hrsh7th/cmp-buffer'
-" For Typscript and React
 Plug 'hrsh7th/cmp-path'
 Plug 'hrsh7th/cmp-cmdline'
+Plug 'TabbyML/vim-tabby'
 call plug#end()
+
+" Plug 'github/copilot.vim'
 
 " --- LSP Configuration ---
 lua << EOF
@@ -37,18 +38,24 @@ vim.api.nvim_create_autocmd('LspAttach', {
 		-- Jump to definition
 		vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
 		-- Other useful mappings
-		vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
-		vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+		vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts) -- docs
+		vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts) -- get references
 		vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
 		vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
 	end,
 })
 
--- Tab completion setup
+-- Tab completion setup with TabbyML compatibility
 local cmp = require('cmp')
 cmp.setup({
-	mapping = {
-		['<Tab>'] = cmp.mapping.select_next_item(),
+mapping = {
+	['<Tab>'] = cmp.mapping(function(fallback)
+	    if cmp.visible() then
+	    	cmp.select_next_item()
+	    else
+	    	fallback() -- TabbyML fallback
+	    end
+		end, { 'i', 's' }),
 		['<S-Tab>'] = cmp.mapping.select_prev_item(),
 		['<CR>'] = cmp.mapping.confirm({ select = true }),
 		['<C-Space>'] = cmp.mapping.complete(),
@@ -76,6 +83,12 @@ require'lspconfig'.ts_ls.setup{
 	root_dir = require('lspconfig').util.root_pattern("package.json", "tsconfig.json", ".git"),
 }
 EOF
+
+" --- TabbyML Configuration ---
+let g:tabby_agent_start_command = ["npx", "tabby-agent", "--stdio"]
+let g:tabby_inline_completion_trigger = "auto"
+let g:tabby_inline_completion_keybinding_accept = "<Tab>"
+let g:tabby_inline_completion_keybinding_trigger_or_dismiss = "<C-\>"
 
 " vimwiki
 let g:vimwiki_list = [{'path': '~/k/', 'syntax': 'markdown', 'ext': 'md', 'diary_rel_path': 'Notes'}]
